@@ -3,29 +3,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 
 // ====== 型定義 ======
-interface Vector2 {
-  x: number;
-  y: number;
-}
-interface GameObject {
-  position: Vector2;
-  velocity: Vector2;
-  size: number;
-  color: string;
-  active: boolean;
-}
-interface Player extends GameObject {
-  health: number;
-}
-interface Enemy extends GameObject {
-  type: 'basic';
-}
-interface Bullet extends GameObject {
-  owner: 'player' | 'enemy';
-}
-interface Star extends GameObject {
-  brightness: number;
-}
+interface Vector2 { x: number; y: number; }
+interface GameObject { position: Vector2; velocity: Vector2; size: number; color: string; active: boolean; }
+interface Player extends GameObject { health: number; }
+interface Enemy extends GameObject { type: 'basic'; }
+interface Bullet extends GameObject { owner: 'player' | 'enemy'; }
+interface Star extends GameObject { brightness: number; }
 
 // ====== 定数 ======
 const GAME_WIDTH = 320;
@@ -42,14 +25,10 @@ const BULLET_FIRE_RATE = 120;
 
 // ====== ユーティリティ ======
 const createVector2 = (x: number, y: number): Vector2 => ({ x, y });
-const distance = (a: Vector2, b: Vector2) =>
-  Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-const clamp = (v: number, min: number, max: number) =>
-  Math.max(min, Math.min(max, v));
-const isColliding = (a: GameObject, b: GameObject) =>
-  distance(a.position, b.position) < (a.size + b.size) / 2;
-const lerp = (start: number, end: number, factor: number) =>
-  start + (end - start) * factor;
+const distance = (a: Vector2, b: Vector2) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+const isColliding = (a: GameObject, b: GameObject) => distance(a.position, b.position) < (a.size + b.size) / 2;
+const lerp = (start: number, end: number, factor: number) => start + (end - start) * factor;
 
 // ====== ゲームクラス ======
 // ゲームの全ロジックと状態をカプセル化
@@ -64,17 +43,13 @@ class Game {
   private bullets: Bullet[] = [];
   private enemies: Enemy[] = [];
   private stars: Star[] = [];
-
+  
   // 入力状態
   public input = {
-    left: false,
-    right: false,
-    up: false,
-    down: false,
-    shoot: false,
+    left: false, right: false, up: false, down: false, shoot: false,
     mousePos: createVector2(GAME_WIDTH / 2, GAME_HEIGHT / 2),
     touching: false,
-    targetPos: createVector2(GAME_WIDTH / 2, GAME_HEIGHT - 60),
+    targetPos: createVector2(GAME_WIDTH / 2, GAME_HEIGHT - 60)
   };
 
   private lastFireTime: number = 0;
@@ -86,7 +61,7 @@ class Game {
       size: PLAYER_SIZE,
       color: '#00ff88',
       active: true,
-      health: 3,
+      health: 3
     };
     this.initStars();
   }
@@ -94,22 +69,19 @@ class Game {
   // === 初期化 ===
   private initStars() {
     this.stars = Array.from({ length: STAR_COUNT }, () => ({
-      position: createVector2(
-        Math.random() * GAME_WIDTH,
-        Math.random() * GAME_HEIGHT
-      ),
+      position: createVector2(Math.random() * GAME_WIDTH, Math.random() * GAME_HEIGHT),
       velocity: createVector2(0, Math.random() * 1.5 + 0.3),
       size: Math.random() * 2 + 0.5,
       color: '#fff',
       active: true,
-      brightness: Math.random() * 0.8 + 0.2,
+      brightness: Math.random() * 0.8 + 0.2
     }));
   }
 
   // === ゲーム更新 ===
   public update() {
     if (this.gameState === 'gameOver') return;
-
+    
     const now = Date.now();
 
     // プレイヤー移動
@@ -128,9 +100,7 @@ class Game {
         const factor = Math.min(1, dist / 60);
         targetVelX = dx * 0.15 * factor;
         targetVelY = dy * 0.15 * factor;
-        const speed = Math.sqrt(
-          targetVelX * targetVelX + targetVelY * targetVelY
-        );
+        const speed = Math.sqrt(targetVelX * targetVelX + targetVelY * targetVelY);
         if (speed > PLAYER_SPEED) {
           targetVelX = (targetVelX / speed) * PLAYER_SPEED;
           targetVelY = (targetVelY / speed) * PLAYER_SPEED;
@@ -141,16 +111,8 @@ class Game {
     this.player.velocity.y = lerp(this.player.velocity.y, targetVelY, 0.15);
     this.player.position.x += this.player.velocity.x;
     this.player.position.y += this.player.velocity.y;
-    this.player.position.x = clamp(
-      this.player.position.x,
-      this.player.size / 2,
-      GAME_WIDTH - this.player.size / 2
-    );
-    this.player.position.y = clamp(
-      this.player.position.y,
-      this.player.size / 2,
-      GAME_HEIGHT - this.player.size / 2
-    );
+    this.player.position.x = clamp(this.player.position.x, this.player.size / 2, GAME_WIDTH - this.player.size / 2);
+    this.player.position.y = clamp(this.player.position.y, this.player.size / 2, GAME_HEIGHT - this.player.size / 2);
 
     // 弾発射
     if (this.input.shoot && now - this.lastFireTime > BULLET_FIRE_RATE) {
@@ -160,43 +122,45 @@ class Game {
         size: BULLET_SIZE,
         color: '#ffff00',
         active: true,
-        owner: 'player',
+        owner: 'player'
       });
       this.lastFireTime = now;
     }
 
     // オブジェクトの更新・削除
-    this.stars.forEach((s) => (s.position.y += s.velocity.y));
-    this.stars = this.stars.filter((s) => s.position.y < GAME_HEIGHT + s.size);
-    this.bullets.forEach((b) => (b.position.y += b.velocity.y));
-    this.bullets = this.bullets.filter(
-      (b) => b.position.y > -20 && b.position.y < GAME_HEIGHT + 20
-    );
-    this.enemies.forEach((e) => (e.position.y += e.velocity.y));
-    this.enemies = this.enemies.filter(
-      (e) => e.position.y < GAME_HEIGHT + e.size + 10
-    );
-
+    // ====== 星の再配置ロジックを修正 ======
+    this.stars.forEach(star => {
+      star.position.y += star.velocity.y;
+      if(star.position.y > GAME_HEIGHT + 5){
+        star.position.y = -5;
+        star.position.x = Math.random() * GAME_WIDTH;
+        star.velocity.y = Math.random() * 1.5 + 0.3;
+      }
+    });
+    // ===================================
+    
+    this.bullets.forEach(b => b.position.y += b.velocity.y);
+    this.bullets = this.bullets.filter(b => b.position.y > -20 && b.position.y < GAME_HEIGHT + 20);
+    this.enemies.forEach(e => e.position.y += e.velocity.y);
+    this.enemies = this.enemies.filter(e => e.position.y < GAME_HEIGHT + e.size + 10);
+    
     // 敵生成
     if (Math.random() < ENEMY_SPAWN_RATE) {
       this.enemies.push({
-        position: createVector2(
-          Math.random() * (GAME_WIDTH - ENEMY_SIZE),
-          -ENEMY_SIZE
-        ),
+        position: createVector2(Math.random() * (GAME_WIDTH - ENEMY_SIZE), -ENEMY_SIZE),
         velocity: createVector2(0, ENEMY_SPEED),
         size: ENEMY_SIZE,
         color: '#ff4444',
         active: true,
-        type: 'basic',
+        type: 'basic'
       });
     }
 
     // 衝突検出
-    this.bullets = this.bullets.filter((b) => {
+    this.bullets = this.bullets.filter(b => {
       if (b.owner === 'player') {
         let hit = false;
-        this.enemies = this.enemies.filter((e) => {
+        this.enemies = this.enemies.filter(e => {
           if (isColliding(b, e)) {
             hit = true;
             this.score += 100;
@@ -209,7 +173,7 @@ class Game {
       return true;
     });
 
-    this.enemies = this.enemies.filter((e) => {
+    this.enemies = this.enemies.filter(e => {
       if (isColliding(this.player, e)) {
         this.hp--;
         if (this.hp <= 0) {
@@ -227,7 +191,7 @@ class Game {
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // 星
-    this.stars.forEach((star) => {
+    this.stars.forEach(star => {
       ctx.fillStyle = `rgba(255,255,255,${star.brightness})`;
       ctx.beginPath();
       ctx.arc(star.position.x, star.position.y, star.size / 2, 0, Math.PI * 2);
@@ -260,7 +224,7 @@ class Game {
     }
 
     // 弾
-    this.bullets.forEach((b) => {
+    this.bullets.forEach(b => {
       ctx.fillStyle = b.color;
       ctx.shadowColor = b.color;
       ctx.shadowBlur = 4;
@@ -271,22 +235,12 @@ class Game {
     });
 
     // 敵
-    this.enemies.forEach((e) => {
+    this.enemies.forEach(e => {
       ctx.fillStyle = e.color;
       ctx.strokeStyle = '#aa0000';
       ctx.lineWidth = 1;
-      ctx.fillRect(
-        e.position.x - e.size / 2,
-        e.position.y - e.size / 2,
-        e.size,
-        e.size
-      );
-      ctx.strokeRect(
-        e.position.x - e.size / 2,
-        e.position.y - e.size / 2,
-        e.size,
-        e.size
-      );
+      ctx.fillRect(e.position.x - e.size / 2, e.position.y - e.size / 2, e.size, e.size);
+      ctx.strokeRect(e.position.x - e.size / 2, e.position.y - e.size / 2, e.size, e.size);
     });
 
     // UI
@@ -303,14 +257,7 @@ class Game {
     }
 
     if (this.gameState === 'gameOver') {
-      const gradient = ctx.createRadialGradient(
-        GAME_WIDTH / 2,
-        GAME_HEIGHT / 2,
-        0,
-        GAME_WIDTH / 2,
-        GAME_HEIGHT / 2,
-        Math.max(GAME_WIDTH, GAME_HEIGHT)
-      );
+      const gradient = ctx.createRadialGradient(GAME_WIDTH / 2, GAME_HEIGHT / 2, 0, GAME_WIDTH / 2, GAME_HEIGHT / 2, Math.max(GAME_WIDTH, GAME_HEIGHT));
       gradient.addColorStop(0, 'rgba(255,0,0,0.1)');
       gradient.addColorStop(1, 'rgba(0,0,0,0.8)');
       ctx.fillStyle = gradient;
@@ -324,16 +271,8 @@ class Game {
       ctx.fillText('GAME OVER', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20);
       ctx.font = 'bold 18px Arial';
       ctx.fillStyle = '#ffff00';
-      ctx.strokeText(
-        `SCORE: ${this.score}`,
-        GAME_WIDTH / 2,
-        GAME_HEIGHT / 2 + 10
-      );
-      ctx.fillText(
-        `SCORE: ${this.score}`,
-        GAME_WIDTH / 2,
-        GAME_HEIGHT / 2 + 10
-      );
+      ctx.strokeText(`SCORE: ${this.score}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10);
+      ctx.fillText(`SCORE: ${this.score}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10);
       ctx.font = '16px Arial';
       ctx.fillStyle = '#cccccc';
       ctx.fillText('タップでリスタート', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40);
@@ -351,7 +290,7 @@ class Game {
       size: PLAYER_SIZE,
       color: '#00ff88',
       active: true,
-      health: 3,
+      health: 3
     };
     this.bullets = [];
     this.enemies = [];
@@ -393,8 +332,7 @@ export default function SpaceShooterGame() {
     // UIに表示する状態を同期
     if (score !== gameRef.current.score) setScore(gameRef.current.score);
     if (hp !== gameRef.current.hp) setHp(gameRef.current.hp);
-    if (gameState !== gameRef.current.gameState)
-      setGameState(gameRef.current.gameState);
+    if (gameState !== gameRef.current.gameState) setGameState(gameRef.current.gameState);
 
     // 描画
     gameRef.current.render(ctx);
@@ -419,50 +357,21 @@ export default function SpaceShooterGame() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!gameRef.current) return;
       switch (e.code) {
-        case 'ArrowLeft':
-        case 'KeyA':
-          gameRef.current.input.left = true;
-          break;
-        case 'ArrowRight':
-        case 'KeyD':
-          gameRef.current.input.right = true;
-          break;
-        case 'ArrowUp':
-        case 'KeyW':
-          gameRef.current.input.up = true;
-          break;
-        case 'ArrowDown':
-        case 'KeyS':
-          gameRef.current.input.down = true;
-          break;
-        case 'Space':
-          gameRef.current.input.shoot = true;
-          e.preventDefault();
-          break;
+        case 'ArrowLeft': case 'KeyA': gameRef.current.input.left = true; break;
+        case 'ArrowRight': case 'KeyD': gameRef.current.input.right = true; break;
+        case 'ArrowUp': case 'KeyW': gameRef.current.input.up = true; break;
+        case 'ArrowDown': case 'KeyS': gameRef.current.input.down = true; break;
+        case 'Space': gameRef.current.input.shoot = true; e.preventDefault(); break;
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (!gameRef.current) return;
       switch (e.code) {
-        case 'ArrowLeft':
-        case 'KeyA':
-          gameRef.current.input.left = false;
-          break;
-        case 'ArrowRight':
-        case 'KeyD':
-          gameRef.current.input.right = false;
-          break;
-        case 'ArrowUp':
-        case 'KeyW':
-          gameRef.current.input.up = false;
-          break;
-        case 'ArrowDown':
-        case 'KeyS':
-          gameRef.current.input.down = false;
-          break;
-        case 'Space':
-          gameRef.current.input.shoot = false;
-          break;
+        case 'ArrowLeft': case 'KeyA': gameRef.current.input.left = false; break;
+        case 'ArrowRight': case 'KeyD': gameRef.current.input.right = false; break;
+        case 'ArrowUp': case 'KeyW': gameRef.current.input.up = false; break;
+        case 'ArrowDown': case 'KeyS': gameRef.current.input.down = false; break;
+        case 'Space': gameRef.current.input.shoot = false; break;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -473,10 +382,8 @@ export default function SpaceShooterGame() {
     };
   }, []);
 
-  // ====== 新しいマウス・タッチ処理 ======
-  const getCanvasCoordinates = (
-    e: React.MouseEvent | React.TouchEvent
-  ): Vector2 | null => {
+  // ====== マウス・タッチ処理 ======
+  const getCanvasCoordinates = (e: React.MouseEvent | React.TouchEvent): Vector2 | null => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return null;
 
@@ -495,9 +402,7 @@ export default function SpaceShooterGame() {
     return { x, y };
   };
 
-  const handlePointerStart = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
-  ) => {
+  const handlePointerStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!gameRef.current) return;
     if (gameRef.current.gameState === 'gameOver') {
       resetGame();
@@ -517,9 +422,7 @@ export default function SpaceShooterGame() {
     gameRef.current.input.shoot = false;
   };
 
-  const handlePointerMove = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
-  ) => {
+  const handlePointerMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!gameRef.current) return;
     const pos = getCanvasCoordinates(e);
     if (pos) {
@@ -540,9 +443,7 @@ export default function SpaceShooterGame() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
       <div className="mb-4 text-center">
-        <h1 className="text-3xl font-bold text-white mb-2">
-          🚀 スペースシューター
-        </h1>
+        <h1 className="text-3xl font-bold text-white mb-2">🚀 スペースシューター</h1>
         <div className="text-sm text-gray-300">
           <p>WASD/矢印キー: 移動 | スペース/クリック: 射撃</p>
           <p>マウス: ポインター追跡 | タッチ: 移動・射撃</p>
@@ -565,7 +466,7 @@ export default function SpaceShooterGame() {
           maxWidth: '100%',
           height: 'auto',
           aspectRatio: `${GAME_WIDTH}/${GAME_HEIGHT}`,
-          imageRendering: 'pixelated',
+          imageRendering: 'pixelated'
         }}
       />
       <div className="mt-4 text-center">
